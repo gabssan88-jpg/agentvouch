@@ -6,7 +6,7 @@ Registration and vouching are gated by **Agent ID** (`name.ai`) — the non-tran
 on-chain identity of a Binance Agentic Wallet.
 
 **Live app:** https://gabssan88-jpg.github.io/agentvouch/
-**Contract (BNB Chain):** `0xe58725B9094473B95e19353EbDfDFc84139457CE` — verified on BscScan
+**Contract (BNB Chain):** `0xe58725B9094473B95e19353EbDfDFc84139457CE` — source verified (Sourcify exact match)
 **Agent ID registry used:** `0x60b9262456de011f7d15a54cdd8c48baaa8b022f` (SPACE ID Agent ID, ERC-721)
 
 ## Why Agent ID?
