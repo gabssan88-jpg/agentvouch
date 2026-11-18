@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AgentVouch — On-chain Reputation Registry for AI Agents</title>
+<meta name="description" content="AgentVouch is a permissionless reputation registry for AI agents on BNB Chain. Registration and vouching are gated by Agent ID (name.ai), a non-transferable identity — one real user, one voice.">
+<style>
+  :root { --bg:#0b0e14; --card:#141926; --line:#232b3d; --txt:#e8ecf3; --mut:#97a1b3; --acc:#f0b90b; --ok:#2ebd85; --bad:#f6465d; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif; background:var(--bg); color:var(--txt); }
+  .wrap { max-width:960px; margin:0 auto; padding:24px 16px 64px; }
+  header { display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; }
+  h1 { font-size:28px; margin:0; } h1 span { color:var(--acc); }
+  h2 { font-size:20px; margin:28px 0 10px; }
+  p, li { color:var(--mut); line-height:1.55; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:16px; margin-top:14px; }
+  .stats { display:flex; gap:12px; flex-wrap:wrap; }
+  .stat { flex:1; min-width:140px; background:var(--card); border:1px solid var(--line); border-radius:12px; padding:14px; }
+  .stat b { font-size:24px; display:block; color:var(--txt); }
+  button { background:var(--acc); color:#111; border:0; border-radius:8px; padding:10px 16px; font-weight:600; cursor:pointer; }
+  button.secondary { background:transparent; color:var(--txt); border:1px solid var(--line); }
+  button:disabled { opacity:.45; cursor:not-allowed; }
+  input, select, textarea { width:100%; background:#0d1119; color:var(--txt); border:1px solid var(--line); border-radius:8px; padding:10px; margin:6px 0 12px; }
+  table { width:100%; border-collapse:collapse; font-size:14px; }
+  th, td { text-align:left; padding:9px 8px; border-bottom:1px solid var(--line); vertical-align:top; }
+  th { color:var(--mut); font-weight:600; }
+  .pill { display:inline-block; padding:2px 8px; border-radius:999px; font-size:12px; border:1px solid var(--line); color:var(--mut); }
+  .ok { color:var(--ok); } .bad { color:var(--bad); }
+  a { color:var(--acc); }
+  .small { font-size:13px; }
+  #status { min-height:20px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Agent<span>Vouch</span></h1>
+    <button id="connectBtn">Connect Wallet</button>
+  </header>
+  <p>On-chain reputation registry for AI agents on BNB Chain. Registration and vouching are
+     gated by <b>Agent ID</b> (<i>name.ai</i>) — a non-transferable identity limited to one per user.
+     That makes every profile and every vouch sybil-resistant: one real user, one voice.</p>
+  <p id="status" class="small"></p>
+
+  <div class="stats">
+    <div class="stat"><b id="statAgents">–</b>Registered agents</div>
+    <div class="stat"><b id="statVouches">–</b>Total vouches</div>
+    <div class="stat"><b id="statYou">–</b>Your Agent ID status</div>
+  </div>
+
+  <div class="card">
+    <h2 style="margin-top:0">Register your agent</h2>
+    <p class="small">Free — you only pay the BNB Chain gas fee (a fraction of a cent). You must hold an Agent ID.
+       One profile per address.</p>
+    <label>Agent name *</label>
+    <input id="fName" placeholder="e.g. ResearchFox">
+    <label>Category</label>
+    <select id="fCategory">
+      <option>research</option><option>trading</option><option>support</option>
+      <option>gaming</option><option>productivity</option><option>security</option><option>other</option>
+    </select>
+    <label>Description</label>
+    <textarea id="fDesc" rows="2" placeholder="What does your agent do?"></textarea>
+    <label>Link (homepage / docs / endpoint)</label>
+    <input id="fUri" placeholder="https://…">
+    <button id="registerBtn">Register on-chain</button>
+    <button id="updateBtn" class="secondary">Update my profile</button>
+  </div>
+
+  <h2>Agent directory</h2>
+  <div class="card" style="padding:4px 12px">
+    <table>
+      <thead><tr><th>Agent</th><th>Category</th><th>Description</th><th>Vouches</th><th></th></tr></thead>
+      <tbody id="dirBody"><tr><td colspan="5" class="small">Loading…</td></tr></tbody>
+    </table>
+  </div>
+
+  <h2>How Agent ID is used</h2>
+  <div class="card">
+    <ul>
+      <li><b>Access control:</b> the contract calls <code>balanceOf(address)</code> on the Agent ID registry
+          (<code>0x60b9262456de011f7d15a54cdd8c48baaa8b022f</code>) before every registration, profile update,
+          reactivation and vouch. No Agent ID, no write access.</li>
+      <li><b>Sybil resistance:</b> Agent ID is non-transferable and capped at one per user, so reputation
+          cannot be farmed with throwaway wallets.</li>
+      <li><b>Reputation graph:</b> vouches are public, one per pair, and revocable — a transparent trust
+          signal other users and apps can read directly on-chain.</li>
+    </ul>
+  </div>
+
+  <h2>Safety &amp; permissions</h2>
+  <div class="card">
+    <ul>
+      <li>The AgentVouch contract has <b>no owner and no admin functions</b>: it cannot mint, pause, freeze,
+          change fees, or withdraw funds. It never takes custody of assets and is not payable.</li>
+      <li>Connect only through your wallet's standard injected provider on this page.
+          This site <b>never</b> asks you to scan a QR code or enter a pairing code to sign in, and never
+          asks for a seed phrase, private key, or API secret.</li>
+      <li>Every action is a transaction <b>you</b> review and confirm in your own wallet. Nothing is
+          auto-signed and nothing is transferred on your behalf.</li>
+      <li>AgentVouch is a reputation tool. It does not promise any return, yield, or reward.</li>
+    </ul>
+    <p class="small">Contract: <a id="contractLink" href="#" target="_blank" rel="noopener">view on BscScan</a> ·
+       Source code: <a href="https://github.com/gabssan88-jpg/agentvouch" target="_blank" rel="noopener">GitHub</a> ·
+       Built for the Binance Wallet × BNB Chain Agent ID Hackathon.</p>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/ethers@6.13.4/dist/ethers.umd.min.js"></script>
+<script>
+const CONTRACT_ADDRESS = "0xe58725B9094473B95e19353EbDfDFc84139457CE";
+const AGENT_ID = "0x60b9262456de011f7d15a54cdd8c48baaa8b022f";
+const BSC_RPC = "https://bsc-dataseed.binance.org";
+const ABI = [
+  "function register(string name,string category,string description,string uri)",
+  "function updateProfile(string name,string category,string description,string uri)",
+  "function vouch(address agent)",
+  "function unvouch(address agent)",
+  "function isAgentIdHolder(address) view returns (bool)",
+  "function isRegistered(address) view returns (bool)",
+  "function vouchedFor(address,address) view returns (bool)",
+  "function vouchCount(address) view returns (uint256)",
+  "function totalVouches() view returns (uint256)",
+  "function totalAgents() view returns (uint256)",
+  "function getAgents(uint256 offset,uint256 limit) view returns (address[])",
+  "function getProfile(address) view returns (tuple(string name,string category,string description,string uri,bool active,uint64 registeredAt,uint64 updatedAt))"
+];
+const readProvider = new ethers.JsonRpcProvider(BSC_RPC);
+const readContract = new ethers.Contract(CONTRACT_ADDRESS, ABI, readProvider);
+let signer = null, myAddress = null;
+
+const $ = id => document.getElementById(id);
+const setStatus = (t, cls) => { const s = $("status"); s.textContent = t; s.className = "small " + (cls || ""); };
+$("contractLink").href = "https://bscscan.com/address/" + CONTRACT_ADDRESS;
+
+async function refresh() {
+  try {
+    const [agents, vouches] = await Promise.all([readContract.totalAgents(), readContract.totalVouches()]);
+    $("statAgents").textContent = agents.toString();
+    $("statVouches").textContent = vouches.toString();
+    const addrs = await readContract.getAgents(0, 100);
+    const rows = [];
+    for (const a of addrs) {
+      const p = await readContract.getProfile(a);
+      const vc = await readContract.vouchCount(a);
+      let btn = "";
+      if (myAddress && a.toLowerCase() !== myAddress.toLowerCase()) {
+        const has = await readContract.vouchedFor(myAddress, a);
+        btn = has
+          ? `<button class="secondary" onclick="doUnvouch('${a}')">Unvouch</button>`
+          : `<button onclick="doVouch('${a}')">Vouch</button>`;
+      }
+      rows.push(`<tr><td><b>${escapeHtml(p.name)}</b><br><span class="small">${a.slice(0,6)}…${a.slice(-4)}</span>
+        ${p.uri ? `<br><a class="small" href="${escapeHtml(p.uri)}" target="_blank" rel="noopener">link</a>` : ""}</td>
+        <td><span class="pill">${escapeHtml(p.category)}</span></td>
+        <td>${escapeHtml(p.description)}</td><td><b>${vc.toString()}</b></td><td>${btn}</td></tr>`);
+    }
+    $("dirBody").innerHTML = rows.length ? rows.join("") : `<tr><td colspan="5" class="small">No agents registered yet — be the first.</td></tr>`;
+  } catch (e) { setStatus("Could not load directory: " + e.message, "bad"); }
+}
+
+function escapeHtml(s) { const d = document.createElement("div"); d.textContent = s ?? ""; return d.innerHTML; }
+
+async function connect() {
+  if (!window.ethereum) { setStatus("No injected wallet found. Open this page in a wallet browser (e.g. Binance Wallet / MetaMask).", "bad"); return; }
+  const bp = new ethers.BrowserProvider(window.ethereum);
+  await bp.send("eth_requestAccounts", []);
+  try {
+    await window.ethereum.request({ method: "wallet_switchEthereumChain", params: [{ chainId: "0x38" }] });
+  } catch (e) {
+    await window.ethereum.request({ method: "wallet_addEthereumChain", params: [{ chainId: "0x38", chainName: "BNB Smart Chain", nativeCurrency: { name: "BNB", symbol: "BNB", decimals: 18 }, rpcUrls: [BSC_RPC], blockExplorerUrls: ["https://bscscan.com"] }] });
+  }
+  signer = await bp.getSigner();
+  myAddress = await signer.getAddress();
+  $("connectBtn").textContent = myAddress.slice(0,6) + "…" + myAddress.slice(-4);
+  const holder = await readContract.isAgentIdHolder(myAddress);
+  $("statYou").textContent = holder ? "Holder ✓" : "No Agent ID";
+  setStatus(holder ? "Connected. You hold an Agent ID — you can register and vouch." : "Connected, but this address holds no Agent ID. Claim one free in the Binance App: Wallet → Agent ID banner.", holder ? "ok" : "bad");
+  refresh();
+}
+
+async function write(fn, ...args) {
+  if (!signer) { await connect(); if (!signer) return; }
+  const c = new ethers.Contract(CONTRACT_ADDRESS, ABI, signer);
+  setStatus("Confirm the transaction in your wallet…");
+  const tx = await c[fn](...args);
+  setStatus("Transaction sent: " + tx.hash + " — waiting for confirmation…");
+  await tx.wait();
+  setStatus("Confirmed on-chain ✓", "ok");
+  refresh();
+}
+
+$("connectBtn").onclick = () => connect().catch(e => setStatus(e.message, "bad"));
+$("registerBtn").onclick = () => write("register", $("fName").value, $("fCategory").value, $("fDesc").value, $("fUri").value).catch(e => setStatus(e.shortMessage || e.message, "bad"));
+$("updateBtn").onclick = () => write("updateProfile", $("fName").value, $("fCategory").value, $("fDesc").value, $("fUri").value).catch(e => setStatus(e.shortMessage || e.message, "bad"));
+window.doVouch = a => write("vouch", a).catch(e => setStatus(e.shortMessage || e.message, "bad"));
+window.doUnvouch = a => write("unvouch", a).catch(e => setStatus(e.shortMessage || e.message, "bad"));
+
+refresh();
+</script>
+</body>
+</html>
